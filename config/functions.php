@@ -25,26 +25,36 @@ function get_route() {
     
     // Check if the URL contains /index.php
     if (strpos($url, '/index.php') !== false) {
-        // Extract the path after /index.php
+        // Extract the path after /index.php, removing any query string
         $parts = explode('/index.php', $url, 2);
         
         if (isset($parts[1]) && !empty($parts[1])) {
-            $path_parts = explode('/', trim($parts[1], '/'));
+            // Remove any query string from the path
+            $path = $parts[1];
+            if (strpos($path, '?') !== false) {
+                $path = substr($path, 0, strpos($path, '?'));
+            }
             
-            // The first part after /index.php is the route
+            $path_parts = explode('/', trim($path, '/'));
+            
+            // Format de URL: /index.php/admin/login
             if (!empty($path_parts[0])) {
-                $retorno['route'] = '/' . $path_parts[0];
-                
-                // The second part is either the controller or the action
                 if (isset($path_parts[1]) && !empty($path_parts[1])) {
+                    // Se temos dois segmentos, considere o formato completo /plugin/view
+                    $retorno['route'] = '/' . $path_parts[0] . '/' . $path_parts[1];
+                    
+                    // Se temos um terceiro segmento, ele é o action
                     if (isset($path_parts[2]) && !empty($path_parts[2])) {
-                        // If there's a third part, then the second is controller and third is action
-                        $retorno['controller'] = $path_parts[1];
                         $retorno['action'] = $path_parts[2];
-                    } else {
-                        // If there's no third part, the second is the action
-                        $retorno['action'] = $path_parts[1];
+                        
+                        // E se temos um quarto, ele é o controller
+                        if (isset($path_parts[3]) && !empty($path_parts[3])) {
+                            $retorno['controller'] = $path_parts[3];
+                        }
                     }
+                } else {
+                    // Se há apenas um segmento, use-o como rota
+                    $retorno['route'] = '/' . $path_parts[0];
                 }
             }
         }
@@ -56,7 +66,6 @@ function get_route() {
         exit;
     }
 }
-
 /**
  * Retrieves the view path associated with a given route.
  *
@@ -66,14 +75,23 @@ function get_route() {
  * @param string $view The name of the view to look up.
  * @return string|null The path to the view file or null if not found.
  */
-function get_view($view)
-{
+function get_view($route) {
     global $routes;
-
-    if (array_key_exists($view, $routes)) {
-        $view_add = $routes[$view]['view'];
-        return $view_add;
+    global $plugin_route;
+    
+    // Verificar se a rota existe nas rotas normais
+    if (isset($routes[$route])) {
+        return $routes[$route]['view'];
     }
+    
+    // Verificar se a rota existe nas rotas de plugins
+    foreach ($plugin_route as $plugin => $plugin_routes) {
+        if (isset($plugin_routes[$route])) {
+            return $plugin_routes[$route]['view'];
+        }
+    }
+    
+    return null;
 }
 
 function get_std_controller($view)
@@ -147,18 +165,28 @@ function getPluginName($path)
  * @param string $view The name of the view for which to find the structure file.
  * @return string The path to the structure file or the default structure if none is associated.
  */
-function get_structure($view)
-{
+function get_structure($route) {
     global $routes;
-
-    if (array_key_exists($view, $routes)) {
-        //$structure = $routes[$view]['structure'];
-        $structure = isset($routes[$view]['structure']) ? $routes[$view]['structure'] : '';
-
-        if ($structure == '') {
-            $structure = $GLOBALS['core_structure'];
+    global $plugin_route;
+    
+    // Verificar se a rota existe nas rotas normais
+    if (isset($routes[$route])) {
+        $structure = isset($routes[$route]['structure']) ? $routes[$route]['structure'] : '';
+    } else {
+        // Verificar se a rota existe nas rotas de plugins
+        foreach ($plugin_route as $plugin => $plugin_routes) {
+            if (isset($plugin_routes[$route])) {
+                $structure = isset($plugin_routes[$route]['structure']) ? $plugin_routes[$route]['structure'] : '';
+                break;
+            }
         }
     }
+    
+    // Se a estrutura estiver vazia, use a estrutura padrão
+    if (empty($structure)) {
+        $structure = $GLOBALS['core_structure'];
+    }
+    
     return $structure;
 }
 
@@ -170,13 +198,19 @@ function get_structure($view)
 function load_plugins()
 {
     $directory = 'plugins/';
+    $plugins = [];
+    
     // Check if the directory exists
+    if (!is_dir($directory)) {
+        return $plugins;
+    }
+    
     // Get the list of files and directories
     $filesAndFolders = scandir($directory);
 
     foreach ($filesAndFolders as $item) {
         // Construct the full path
-        $fullPath = $directory . '/' . $item;
+        $fullPath = $directory . $item;
 
         // Skip '.' and '..' to avoid infinite loop and skip files
         if ($item == '.' || $item == '..')
@@ -208,10 +242,16 @@ function highlight_route($route)
 }
 
 // Função para conectar ao banco de dados usando .env
+// Função para conectar ao banco de dados usando .env
 function getConnection() {
-    $dsn = sprintf('mysql:host=%s;dbname=%s', $_ENV['DB_HOST'], $_ENV['DB_NAME']);
-    $username = $_ENV['DB_USER'];
-    $password = $_ENV['DB_PASS'];
+    // Usa operador de coalescência nula para definir valores padrão
+    $host = $_ENV['DB_HOST'] ?? 'localhost';
+    $dbname = $_ENV['DB_NAME'] ?? 'paws_patterns';
+    $username = $_ENV['DB_USER'] ?? 'root';
+    $password = $_ENV['DB_PASS'] ?? 'root';
+    
+    $dsn = sprintf('mysql:host=%s;dbname=%s', $host, $dbname);
+    
     try {
         $pdo = new PDO($dsn, $username, $password);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

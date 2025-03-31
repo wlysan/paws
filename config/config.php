@@ -1,4 +1,12 @@
 <?php
+// No início do arquivo config.php
+
+// Carregar variáveis do arquivo .env
+require_once __DIR__ . '/../vendor/autoload.php';
+
+// Inicializar o Dotenv
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
