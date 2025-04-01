@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,6 +16,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Old+Standard+TT:wght@400;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <div class="admin-container">
         <!-- Sidebar -->
@@ -106,7 +108,9 @@
                             <span class="notification-badge">3</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationDropdown">
-                            <li><h6 class="dropdown-header">Notifications</h6></li>
+                            <li>
+                                <h6 class="dropdown-header">Notifications</h6>
+                            </li>
                             <li><a class="dropdown-item" href="#">New order received</a></li>
                             <li><a class="dropdown-item" href="#">Product stock low</a></li>
                             <li><a class="dropdown-item" href="#">New customer registration</a></li>
@@ -120,21 +124,31 @@
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             <li><a class="dropdown-item" href="/index.php/admin/profile">Profile</a></li>
                             <li><a class="dropdown-item" href="/index.php/admin/settings">Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
                             <li><a class="dropdown-item" href="/index.php/admin/logout">Logout</a></li>
                         </ul>
                     </div>
                 </div>
             </nav>
-            
+
             <!-- Page Content -->
             <div class="page-content">
                 <?php
-                get_std_controller($rota['route']);
-                include get_view($rota['route']);
+                // Executar o controller e obter suas variáveis
+                $controller_vars = get_std_controller($rota['route']);
+
+                // Incluir a view
+                $view_path = get_view($rota['route']);
+                if (file_exists($view_path)) {
+                    include $view_path;
+                } else {
+                    echo "<div class='alert alert-danger'>View não encontrada: " . htmlspecialchars($rota['route']) . "</div>";
+                }
                 ?>
             </div>
-            
+
             <!-- Footer -->
             <footer class="footer">
                 <div class="container-fluid">
@@ -156,4 +170,5 @@
     <!-- Custom JS -->
     <script src="/plugins/admin/js/sys_struct.js"></script>
 </body>
+
 </html>
