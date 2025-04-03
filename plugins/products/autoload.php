@@ -11,6 +11,7 @@ include_once "plugin_routes.php";
 include_once "helpers/category_helpers.php";
 include_once "helpers/product_helpers.php";
 include_once "helpers/admin_helpers.php";  // Adicionada esta linha
+include_once "helpers/debug_helpers.php";  // Adicionada esta linha
 
 // Inclui os arquivos de hooks
 include_once "hooks/admin_hooks.php";

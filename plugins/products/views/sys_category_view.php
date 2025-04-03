@@ -1,23 +1,19 @@
 <?php
+// View for category listing
 
-print_r(get_route());
-print_r(get_parameters());
+// Check for messages
+if (!empty($error_message)): ?>
+    <div class="alert alert-danger" role="alert">
+        <?php echo htmlspecialchars($error_message); ?>
+    </div>
+<?php endif; ?>
 
-
-
-// Include any components needed
-if (file_exists('plugins/admin/components/alerts.php')) {
-    include_once 'plugins/admin/components/alerts.php';
-}
-if (file_exists('plugins/admin/components/modals.php')) {
-    include_once 'plugins/admin/components/modals.php';
-}
-
-// Enforce admin login if function exists
-if (function_exists('require_admin_login')) {
-    require_admin_login();
-}
-?>
+<?php if (!empty($success_message)): ?>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <?php echo htmlspecialchars($success_message); ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<?php endif; ?>
 
 <div class="container-fluid">
     <!-- Page Header -->
@@ -32,20 +28,6 @@ if (function_exists('require_admin_login')) {
             </a>
         </div>
     </div>
-    <!-- Display alerts if available -->
-    <?php if (function_exists('show_session_alerts')) show_session_alerts(); ?>
-
-    <?php if (!empty($error_message)): ?>
-        <div class="alert alert-danger" role="alert">
-            <?php echo htmlspecialchars($error_message); ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if (!empty($success_message)): ?>
-        <div class="alert alert-success" role="alert">
-            <?php echo htmlspecialchars($success_message); ?>
-        </div>
-    <?php endif; ?>
 
     <!-- Categories Table -->
     <div class="card">
@@ -56,6 +38,11 @@ if (function_exists('require_admin_login')) {
             <?php if (empty($categories)): ?>
                 <div class="alert alert-info">
                     No categories found. Create your first category to get started.
+                </div>
+                <div class="text-center mt-4">
+                    <a href="/index.php/admin/categories/add" class="btn btn-primary">
+                        <i class="fas fa-plus-circle me-2"></i> Create First Category
+                    </a>
                 </div>
             <?php else: ?>
                 <div class="table-responsive">
@@ -72,7 +59,10 @@ if (function_exists('require_admin_login')) {
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($categories as $category): ?>
+                            <?php 
+                            // Render category rows
+                            foreach ($categories as $category): 
+                            ?>
                                 <tr>
                                     <td>
                                         <?php if (!empty($category['image_path']) && file_exists($category['image_path'])): ?>
@@ -84,7 +74,7 @@ if (function_exists('require_admin_login')) {
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <?php
+                                        <?php 
                                         // Add indentation for subcategories
                                         if (!empty($category['parent_id'])) {
                                             echo '<span class="subcategory-indent">└─ </span>';
@@ -92,7 +82,7 @@ if (function_exists('require_admin_login')) {
                                         echo htmlspecialchars($category['name']);
                                         ?>
                                     </td>
-                                    <td><?php echo htmlspecialchars(substr($category['description'], 0, 100)) . (strlen($category['description']) > 100 ? '...' : ''); ?></td>
+                                    <td><?php echo htmlspecialchars(substr($category['description'] ?? '', 0, 100)) . (strlen($category['description'] ?? '') > 100 ? '...' : ''); ?></td>
                                     <td><?php echo !empty($category['parent_name']) ? htmlspecialchars($category['parent_name']) : '<i>None</i>'; ?></td>
                                     <td>
                                         <?php
@@ -113,7 +103,7 @@ if (function_exists('require_admin_login')) {
                                             <?php echo ucfirst($category['status']); ?>
                                         </span>
                                     </td>
-                                    <td><?php echo (int)$category['product_count']; ?></td>
+                                    <td><?php echo (int)($category['product_count'] ?? 0); ?></td>
                                     <td>
                                         <div class="btn-group" role="group">
                                             <a href="/index.php/admin/categories/edit/id/<?php echo $category['id']; ?>" 
@@ -128,53 +118,33 @@ if (function_exists('require_admin_login')) {
                                         </div>
 
                                         <!-- Delete Modal -->
-                                        <?php
-                                        $modal_message = '<p>Are you sure you want to delete the category <strong>' .
-                                            htmlspecialchars($category['name']) . '</strong>?</p>';
-
-                                        if ((int)$category['product_count'] > 0) {
-                                            $modal_message .= '<div class="alert alert-warning">
-                                                This category has ' . (int)$category['product_count'] . ' products associated with it. 
-                                                Deleting this category will remove the association but not delete the products.
-                                            </div>';
-                                        }
-
-                                        // Check for subcategories
-                                        $has_subcategories = false;
-                                        foreach ($categories as $sub) {
-                                            if ($sub['parent_id'] == $category['id']) {
-                                                $has_subcategories = true;
-                                                break;
-                                            }
-                                        }
-
-                                        if ($has_subcategories) {
-                                            $modal_message .= '<div class="alert alert-danger">
-                                                This category has subcategories. You must delete or reassign the subcategories first.
-                                            </div>';
-                                            $confirm_action = '';
-                                        } else {
-                                            $confirm_action = '
-                                                document.getElementById("delete-form-' . $category['id'] . '").submit();
-                                            ';
-                                        }
-
-                                        confirmation_modal(
-                                            'deleteModal' . $category['id'],
-                                            'Delete Category',
-                                            $modal_message,
-                                            'Delete',
-                                            'Cancel',
-                                            $confirm_action
-                                        );
-                                        ?>
-
-                                        <!-- Hidden Delete Form -->
-                                        <form id="delete-form-<?php echo $category['id']; ?>"
-                                            action="/index.php/admin/categories" method="post" style="display:none;">
-                                            <input type="hidden" name="action" value="delete_category">
-                                            <input type="hidden" name="category_id" value="<?php echo $category['id']; ?>">
-                                        </form>
+                                        <div class="modal fade" id="deleteModal<?php echo $category['id']; ?>" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Delete Category</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p>Are you sure you want to delete the category <strong><?php echo htmlspecialchars($category['name']); ?></strong>?</p>
+                                                        
+                                                        <?php if ((int)$category['product_count'] > 0): ?>
+                                                            <div class="alert alert-warning">
+                                                                This category has <?php echo (int)$category['product_count']; ?> products associated with it. 
+                                                                Deleting will remove these associations but not delete the products.
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                        <form action="/index.php/admin/categories/delete" method="post">
+                                                            <input type="hidden" name="category_id" value="<?php echo $category['id']; ?>">
+                                                            <button type="submit" class="btn btn-danger">Delete</button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

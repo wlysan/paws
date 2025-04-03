@@ -25,6 +25,9 @@ if (isset($_SESSION['error_message'])) {
     unset($_SESSION['error_message']);
 }
 
+// Debug para investigar o problema
+error_log('Debugging categoria: Iniciando carregamento de categorias');
+
 // Carregar categorias para exibição
 $categories = [];
 $category_tree = [];
@@ -32,23 +35,40 @@ $category_tree = [];
 try {
     $pdo = getConnection();
     
-    // Obter todas as categorias
+    // Verificar se a tabela existe
     $stmt = $pdo->prepare("
-        SELECT c.*, 
-               COALESCE((SELECT COUNT(*) FROM product_category_relationships WHERE category_id = c.id), 0) as product_count,
-               p.name as parent_name
-        FROM product_categories c
-        LEFT JOIN product_categories p ON c.parent_id = p.id
-        WHERE c.is_deleted = 0
-        ORDER BY c.parent_id ASC, c.display_order ASC, c.name ASC
+        SHOW TABLES LIKE 'product_categories'
     ");
     $stmt->execute();
-    $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Construir árvore de categorias para exibição
-    $category_tree = build_category_tree($categories);
+    if ($stmt->rowCount() > 0) {
+        // Obter todas as categorias
+        $stmt = $pdo->prepare("
+            SELECT c.*, 
+                COALESCE((SELECT COUNT(*) FROM product_category_relationships WHERE category_id = c.id), 0) as product_count,
+                p.name as parent_name
+            FROM product_categories c
+            LEFT JOIN product_categories p ON c.parent_id = p.id
+            WHERE c.is_deleted = 0
+            ORDER BY c.parent_id ASC, c.display_order ASC, c.name ASC
+        ");
+        $stmt->execute();
+        $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Debug
+        error_log('Categorias encontradas: ' . count($categories));
+    } else {
+        // A tabela não existe, criar uma mensagem informativa
+        $error_message = 'A tabela de categorias ainda não foi criada. Por favor, adicione sua primeira categoria.';
+        error_log('Tabela product_categories não encontrada');
+    }
     
 } catch (PDOException $e) {
     $error_message = 'Erro ao carregar categorias. Por favor, tente novamente mais tarde.';
     error_log('Erro ao carregar categorias: ' . $e->getMessage());
+}
+
+// Construir árvore de categorias para exibição, se houver categorias
+if (!empty($categories)) {
+    $category_tree = build_category_tree($categories);
 }

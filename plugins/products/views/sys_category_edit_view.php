@@ -1,17 +1,4 @@
 <?php
-if (isset($edit_category)): ?>
-    <!-- Depuração -->
-    <div>
-        <?php
-        echo "ID da categoria: " . ($edit_category['id'] ?? 'não definido');
-        echo "Nome da categoria: " . ($edit_category['name'] ?? 'não definido');
-        ?>
-    </div>
-<?php else: ?>
-    <div class="alert alert-danger">
-        Dados da categoria não estão disponíveis. Por favor, volte e tente novamente.
-    </div>
-<?php endif;
 // Include any components needed
 if (file_exists('plugins/admin/components/alerts.php')) {
     include_once 'plugins/admin/components/alerts.php';
@@ -29,13 +16,28 @@ if (empty($edit_category)) {
     header('Location: /index.php/admin/categories');
     exit;
 }
+
+// Get attributes array if available
+$attributes = [];
+if (isset($edit_category['attributes_array']) && is_array($edit_category['attributes_array'])) {
+    $attributes = $edit_category['attributes_array'];
+} else if (!empty($edit_category['attributes'])) {
+    try {
+        $unserialized = unserialize($edit_category['attributes']);
+        if ($unserialized !== false) {
+            $attributes = $unserialized;
+        }
+    } catch (Exception $e) {
+        error_log('Error unserializing attributes: ' . $e->getMessage());
+    }
+}
 ?>
 
 <div class="container-fluid">
     <!-- Page Header -->
     <div class="page-header">
         <h1 class="page-title">Edit Category</h1>
-        <p class="text-muted">Editing category: <?php echo htmlspecialchars($edit_category['name']); ?></p>
+        <p class="text-muted">Editing: <?php echo htmlspecialchars($edit_category['name']); ?></p>
     </div>
 
     <!-- Display alerts if available -->
@@ -77,15 +79,11 @@ if (empty($edit_category)) {
                                     if ($category['id'] == $edit_category['id']) {
                                         continue;
                                     }
-
-                                    // Only show top level categories
-                                    if (empty($category['parent_id'])):
                                     ?>
-                                        <option value="<?php echo $category['id']; ?>"
-                                            <?php echo ($edit_category['parent_id'] == $category['id']) ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($category['name']); ?>
-                                        </option>
-                                    <?php endif; ?>
+                                    <option value="<?php echo $category['id']; ?>"
+                                        <?php echo ($edit_category['parent_id'] == $category['id']) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($category['name']); ?>
+                                    </option>
                                 <?php endforeach; ?>
                             </select>
                             <div class="form-text">Categories can be nested for better organization</div>
@@ -117,9 +115,7 @@ if (empty($edit_category)) {
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label for="description" class="form-label">Description</label>
-                            <textarea class="form-control" id="description" name="description" rows="5"><?php
-                                                                                                        echo htmlspecialchars($edit_category['description']);
-                                                                                                        ?></textarea>
+                            <textarea class="form-control" id="description" name="description" rows="5"><?php echo htmlspecialchars($edit_category['description']); ?></textarea>
                             <div class="form-text">A brief description of the category (optional)</div>
                         </div>
 
@@ -155,7 +151,62 @@ if (empty($edit_category)) {
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-between">
+                <!-- Dynamic Attributes Section -->
+                <div class="mt-4">
+                    <h5 class="card-title">Additional Attributes</h5>
+                    <p class="text-muted">Add key-value pairs for extra category properties (like sizes, colors, etc.)</p>
+
+                    <div id="attributes-container" class="mb-3">
+                        <?php if (!empty($attributes) && is_array($attributes)): ?>
+                            <?php foreach ($attributes as $key => $value): ?>
+                                <div class="attribute-row row mb-2">
+                                    <div class="col-md-5">
+                                        <input type="text" class="form-control" name="attr_key[]" value="<?php echo htmlspecialchars($key); ?>" placeholder="Key (e.g. sizes)">
+                                    </div>
+                                    <div class="col-md-5">
+                                        <input type="text" class="form-control" name="attr_value[]" value="<?php echo htmlspecialchars($value); ?>" placeholder="Value (e.g. XS,S,M,L,XL)">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-danger remove-attribute-btn">
+                                            <i class="fas fa-times"></i> Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+
+                    <button type="button" id="add-attribute-btn" class="btn btn-secondary mb-3">
+                        <i class="fas fa-plus-circle me-2"></i> Add Attribute
+                    </button>
+
+                    <!-- Example attributes for quick addition -->
+                    <!-- Example attributes for quick addition -->
+                    <div class="example-attributes mb-3">
+                        <span class="form-text mb-2">Quick add common attributes:</span>
+                        <!-- Tamanhos com descrições individuais -->
+                        <button type="button" class="btn btn-outline-secondary btn-sm example-item"
+                            data-keys="S,M,L,XL"
+                            data-values="Small,Medium,Large,Extra Large">Sizes</button>
+
+                        <!-- Cores com descrições individuais -->
+                        <button type="button" class="btn btn-outline-secondary btn-sm example-item"
+                            data-keys="RED,BLU,GRN,BLK,WHT"
+                            data-values="Red,Blue,Green,Black,White">Colors</button>
+
+                        <!-- Materiais com descrições individuais -->
+                        <button type="button" class="btn btn-outline-secondary btn-sm example-item"
+                            data-keys="CTN,PLY,LTH,NYL"
+                            data-values="Cotton,Polyester,Leather,Nylon">Materials</button>
+
+                        <!-- Faixa etária com descrições individuais -->
+                        <button type="button" class="btn btn-outline-secondary btn-sm example-item"
+                            data-keys="PUP,ADT,SNR"
+                            data-values="Puppy,Adult,Senior">Age Groups</button>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
                     <a href="/index.php/admin/categories" class="btn btn-secondary">
                         <i class="fas fa-arrow-left me-2"></i> Back to Categories
                     </a>
@@ -169,8 +220,8 @@ if (empty($edit_category)) {
 </div>
 
 <script>
-    // JavaScript for image preview
     document.addEventListener('DOMContentLoaded', function() {
+        // Setup image preview
         const imageInput = document.getElementById('image');
         const imagePreviewContainer = document.querySelector('.image-preview-container');
         const imagePreview = document.getElementById('imagePreview');
@@ -181,34 +232,154 @@ if (empty($edit_category)) {
             removeImageCheckbox.addEventListener('change', function() {
                 const currentImage = document.querySelector('.current-image');
                 if (currentImage) {
-                    if (this.checked) {
-                        currentImage.style.opacity = '0.5';
-                    } else {
-                        currentImage.style.opacity = '1';
-                    }
+                    currentImage.style.opacity = this.checked ? '0.5' : '1';
                 }
             });
         }
 
-        // Show preview for new image
-        imageInput.addEventListener('change', function() {
-            if (this.files && this.files[0]) {
-                const reader = new FileReader();
+        if (imageInput) {
+            imageInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
 
-                reader.onload = function(e) {
-                    imagePreview.src = e.target.result;
-                    imagePreviewContainer.style.display = 'block';
+                    reader.onload = function(e) {
+                        imagePreview.src = e.target.result;
+                        imagePreviewContainer.style.display = 'block';
 
-                    // If remove checkbox exists, uncheck it when new image is selected
-                    if (removeImageCheckbox) {
-                        removeImageCheckbox.checked = false;
+                        // If remove checkbox exists, uncheck it when new image is selected
+                        if (removeImageCheckbox) {
+                            removeImageCheckbox.checked = false;
+                        }
                     }
-                }
 
-                reader.readAsDataURL(this.files[0]);
-            } else {
-                imagePreviewContainer.style.display = 'none';
-            }
+                    reader.readAsDataURL(this.files[0]);
+                } else {
+                    imagePreviewContainer.style.display = 'none';
+                }
+            });
+        }
+
+        // Setup dynamic attributes
+        const addAttributeBtn = document.getElementById('add-attribute-btn');
+        const attributesContainer = document.getElementById('attributes-container');
+
+        if (addAttributeBtn) {
+            addAttributeBtn.addEventListener('click', function() {
+                addAttributeRow();
+            });
+        }
+
+        // Setup existing remove buttons
+        document.querySelectorAll('.remove-attribute-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const row = this.closest('.attribute-row');
+                if (row && attributesContainer) {
+                    attributesContainer.removeChild(row);
+                }
+            });
         });
+
+        // Example attributes quick add buttons
+        // Example attributes quick add buttons
+        const exampleItems = document.querySelectorAll('.example-item');
+
+        if (exampleItems.length > 0) {
+            exampleItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    // Agora trabalhamos com arrays de chaves e valores
+                    const keys = this.dataset.keys.split(',');
+                    const values = this.dataset.values.split(',');
+
+                    // Adicionamos um par para cada chave/valor
+                    for (let i = 0; i < keys.length; i++) {
+                        if (keys[i] && values[i]) {
+                            addAttributeRow(keys[i], values[i]);
+                        }
+                    }
+                });
+            });
+        }
+
+        /**
+         * Add a new attribute row with optional key/value
+         */
+        function addAttributeRow(key = '', value = '') {
+            if (!attributesContainer) return;
+
+            const row = document.createElement('div');
+            row.className = 'attribute-row row mb-2';
+
+            row.innerHTML = `
+            <div class="col-md-5">
+                <input type="text" class="form-control" name="attr_key[]" value="${escapeHtml(key)}" placeholder="Key (e.g. sizes)">
+            </div>
+            <div class="col-md-5">
+                <input type="text" class="form-control" name="attr_value[]" value="${escapeHtml(value)}" placeholder="Value (e.g. XS,S,M,L,XL)">
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-danger remove-attribute-btn">
+                    <i class="fas fa-times"></i> Remove
+                </button>
+            </div>
+        `;
+
+            attributesContainer.appendChild(row);
+
+            // Add event to remove button
+            const removeBtn = row.querySelector('.remove-attribute-btn');
+            removeBtn.addEventListener('click', function() {
+                attributesContainer.removeChild(row);
+            });
+        }
+
+        /**
+         * Escape HTML to prevent XSS
+         */
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return '';
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
     });
 </script>
+
+<style>
+    /* Custom styles for attributes section */
+    .example-attributes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        align-items: center;
+    }
+
+    .example-item {
+        margin-left: 5px;
+        font-size: 0.8rem;
+    }
+
+    .attribute-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .remove-attribute-btn {
+        padding: 0.375rem 0.75rem;
+    }
+
+    @media (max-width: 767px) {
+        .attribute-row {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+
+        .attribute-row>div {
+            width: 100%;
+        }
+    }
+</style>

@@ -80,49 +80,34 @@ function build_category_tree($categories, $parent_id = null, $level = 0) {
  * @param string $string The string to create slug from
  * @return string Formatted slug
  */
-/**
- * Generate slug from string
- * 
- * @param string $string The string to create slug from
- * @return string Formatted slug
- */
 function generate_slug($string) {
-    // Log para depuração
-    error_log('Gerando slug para: ' . $string);
+    // Debug logging
+    error_log('Generating slug for: ' . $string);
     
-    // Converter para minúsculas
+    // Convert to lowercase
     $slug = strtolower($string);
     
-    // Remover caracteres especiais
+    // Replace special characters with empty space
     $slug = preg_replace('/[^a-z0-9\s-]/', '', $slug);
     
-    // Substituir espaços por hifens
+    // Replace spaces with hyphens
     $slug = preg_replace('/\s+/', '-', $slug);
     
-    // Remover hifens múltiplos
+    // Remove multiple hyphens
     $slug = preg_replace('/-+/', '-', $slug);
     
-    // Remover hifens no início e fim
+    // Trim hyphens from beginning and end
     $slug = trim($slug, '-');
     
-    // Se o slug ficar vazio, usar um valor padrão
+    // If slug is empty, use a default value
     if (empty($slug)) {
         $slug = 'category-' . uniqid();
     }
     
-    error_log('Slug gerado: ' . $slug);
+    error_log('Generated slug: ' . $slug);
     return $slug;
 }
 
-
-
-/**
- * Check if a category slug exists
- * 
- * @param string $slug The slug to check
- * @param int $exclude_id Category ID to exclude from check (for updates)
- * @return bool True if exists, false otherwise
- */
 /**
  * Check if a category slug exists
  * 
@@ -133,6 +118,17 @@ function generate_slug($string) {
 function category_slug_exists($slug, $exclude_id = null) {
     try {
         $pdo = getConnection();
+        
+        // First check if the table exists
+        $stmt = $pdo->prepare("
+            SHOW TABLES LIKE 'product_categories'
+        ");
+        $stmt->execute();
+        
+        if ($stmt->rowCount() == 0) {
+            // Table doesn't exist, so slug can't exist
+            return false;
+        }
         
         $sql = "SELECT COUNT(*) as count FROM product_categories WHERE slug = ?";
         $params = [$slug];
@@ -147,11 +143,11 @@ function category_slug_exists($slug, $exclude_id = null) {
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         
         $exists = ($result['count'] > 0);
-        error_log('Verificando se slug existe: ' . $slug . ' - Resultado: ' . ($exists ? 'Sim' : 'Não'));
+        error_log('Checking if slug exists: ' . $slug . ' - Result: ' . ($exists ? 'Yes' : 'No'));
         
         return $exists;
     } catch (PDOException $e) {
-        error_log('Erro ao verificar slug: ' . $e->getMessage());
+        error_log('Error checking slug: ' . $e->getMessage());
         return false;
     }
 }
