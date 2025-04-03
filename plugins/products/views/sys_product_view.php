@@ -1,6 +1,19 @@
 <?php
 // View for product listing
 
+// Ensure variables are available
+if (!isset($categories)) {
+    $categories = $GLOBALS['categories'] ?? [];
+}
+
+if (!isset($error_message)) {
+    $error_message = $GLOBALS['error_message'] ?? '';
+}
+
+if (!isset($success_message)) {
+    $success_message = $GLOBALS['success_message'] ?? '';
+}
+
 // Check for messages
 if (!empty($error_message)): ?>
     <div class="alert alert-danger" role="alert">
@@ -35,9 +48,7 @@ if (!empty($error_message)): ?>
             <h5 class="card-title">Filter Products</h5>
         </div>
         <div class="card-body">
-            <form action="/index.php/admin/products" method="post" class="row g-3">
-                <input type="hidden" name="action" value="filter_products">
-
+            <form id="product-filter-form" class="row g-3">
                 <div class="col-md-3">
                     <label for="filter_category" class="form-label">Category</label>
                     <select class="form-select" id="filter_category" name="filter_category">
@@ -79,7 +90,7 @@ if (!empty($error_message)): ?>
                 </div>
 
                 <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">
+                    <button type="button" id="apply-filters" class="btn btn-primary w-100">
                         <i class="fas fa-filter me-2"></i> Apply Filters
                     </button>
                 </div>
@@ -91,118 +102,23 @@ if (!empty($error_message)): ?>
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">Products</h5>
-            <span class="badge bg-primary"><?php echo $total_products; ?> Total Products</span>
+            <span class="badge bg-primary" id="total-products-count">0 Total Products</span>
         </div>
         <div class="card-body">
-            <?php if (empty($products)): ?>
-                <div class="alert alert-info">
-                    No products found. Create your first product to get started.
+            <div id="products-container">
+                <!-- Products will be loaded here via AJAX -->
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading products...</p>
                 </div>
-                <div class="text-center mt-4">
-                    <a href="/index.php/admin/products/add" class="btn btn-primary">
-                        <i class="fas fa-plus-circle me-2"></i> Create First Product
-                    </a>
-                </div>
-            <?php else: ?>
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead>
-                            <tr>
-                                <th style="width: 80px;">Image</th>
-                                <th>Product</th>
-                                <th>SKU</th>
-                                <th>Price</th>
-                                <th>Stock</th>
-                                <th>Categories</th>
-                                <th>Status</th>
-                                <th style="width: 180px;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($products as $product): ?>
-                                <tr>
-                                    <td>
-                                        <?php if (!empty($product['primary_image']) && file_exists($product['primary_image'])): ?>
-                                            <img src="/<?php echo htmlspecialchars($product['primary_image']); ?>"
-                                                alt="<?php echo htmlspecialchars($product['name']); ?>"
-                                                class="product-thumb" width="60" height="60">
-                                        <?php else: ?>
-                                            <div class="no-image">No image</div>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <div class="fw-semibold"><?php echo htmlspecialchars($product['name']); ?></div>
-                                        <small class="text-muted"><?php echo htmlspecialchars(substr($product['short_description'] ?? '', 0, 50) . (strlen($product['short_description'] ?? '') > 50 ? '...' : '')); ?></small>
-                                    </td>
-                                    <td><?php echo htmlspecialchars($product['sku'] ?? 'N/A'); ?></td>
-                                    <td>
-                                        <div class="fw-semibold">€<?php echo number_format((float)($product['price'] ?? 0), 2); ?></div>
-                                        <?php if (!empty($product['sale_price']) && $product['sale_price'] < $product['price']): ?>
-                                            <small class="text-decoration-line-through text-muted">€<?php echo number_format((float)($product['regular_price'] ?? $product['price']), 2); ?></small>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?php if (($product['stock_quantity'] ?? 0) <= 0): ?>
-                                            <span class="badge bg-danger">Out of Stock</span>
-                                        <?php elseif (($product['stock_quantity'] ?? 0) <= 5): ?>
-                                            <span class="badge bg-warning text-dark">Low: <?php echo (int)($product['stock_quantity'] ?? 0); ?></span>
-                                        <?php else: ?>
-                                            <span class="badge bg-success"><?php echo (int)($product['stock_quantity'] ?? 0); ?></span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?php echo !empty($product['category_names']) ? htmlspecialchars($product['category_names']) : '<span class="text-muted fst-italic">No categories</span>'; ?>
-                                    </td>
-                                    <td>
-                                        <?php
-                                        $status_class = '';
-                                        $status = $product['status'] ?? 'draft';
-                                        switch ($status) {
-                                            case 'published':
-                                                $status_class = 'bg-success';
-                                                break;
-                                            case 'draft':
-                                                $status_class = 'bg-secondary';
-                                                break;
-                                            case 'out_of_stock':
-                                                $status_class = 'bg-danger';
-                                                break;
-                                            case 'discontinued':
-                                                $status_class = 'bg-dark';
-                                                break;
-                                        }
-                                        ?>
-                                        <span class="badge <?php echo $status_class; ?>">
-                                            <?php echo ucfirst($status); ?>
-                                        </span>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Pagination -->
-                <?php if ($total_pages > 1): ?>
-                    <nav aria-label="Product pagination" class="mt-4">
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item <?php echo ($current_page <= 1) ? 'disabled' : ''; ?>">
-                                <a class="page-link" href="/index.php/admin/products?page=<?php echo $current_page - 1; ?>">Previous</a>
-                            </li>
-
-                            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                                <li class="page-item <?php echo ($current_page == $i) ? 'active' : ''; ?>">
-                                    <a class="page-link" href="/index.php/admin/products?page=<?php echo $i; ?>"><?php echo $i; ?></a>
-                                </li>
-                            <?php endfor; ?>
-
-                            <li class="page-item <?php echo ($current_page >= $total_pages) ? 'disabled' : ''; ?>">
-                                <a class="page-link" href="/index.php/admin/products?page=<?php echo $current_page + 1; ?>">Next</a>
-                            </li>
-                        </ul>
-                    </nav>
-                <?php endif; ?>
-            <?php endif; ?>
+            </div>
+            
+            <!-- Pagination Container -->
+            <div id="pagination-container" class="mt-4">
+                <!-- Pagination will be loaded here via AJAX -->
+            </div>
         </div>
     </div>
 </div>
@@ -211,6 +127,8 @@ if (!empty($error_message)): ?>
     .product-thumb {
         object-fit: cover;
         border-radius: 4px;
+        width: 60px;
+        height: 60px;
     }
 
     .no-image {
@@ -225,4 +143,45 @@ if (!empty($error_message)): ?>
         font-size: 10px;
         color: #999;
     }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem 0;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        color: #adb5bd;
+        margin-bottom: 1rem;
+    }
+    
+    .empty-state h4 {
+        margin-bottom: 1rem;
+    }
 </style>
+
+<!-- Modal para confirmar exclusão - será preenchido via JS -->
+<div class="modal fade" id="deleteProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the product <strong id="delete-product-name"></strong>?</p>
+                <p>This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="delete-product-form" action="/index.php/admin/products/delete" method="post">
+                    <input type="hidden" id="delete-product-id" name="product_id" value="">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Carrega o JavaScript específico para produtos -->
+<script src="/plugins/products/js/sys_product.js"></script>

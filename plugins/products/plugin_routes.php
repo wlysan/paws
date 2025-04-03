@@ -34,7 +34,7 @@
     '/category' => [
         'view' => 'plugins/products/views/category_view.php',
         'controller' => 'plugins/products/controllers/category_controller.php',
-        'structure' => 'app/struct/mobile.php'
+        'structure' => 'app/struct/relogio.php'
     ],
 
     '/admin/products' => [
@@ -60,11 +60,11 @@
     '/products' => [
         'view' => 'plugins/products/views/products_view.php',
         'controller' => 'plugins/products/controllers/products_controller.php',
-        'structure' => 'app/struct/mobile.php'
+        'structure' => 'app/struct/relogio.php'
     ],
     '/product' => [
         'view' => 'plugins/products/views/product_view.php',
         'controller' => 'plugins/products/controllers/product_controller.php',
-        'structure' => 'app/struct/mobile.php'
+        'structure' => 'app/struct/relogio.php'
     ]
 ];
