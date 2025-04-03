@@ -7,6 +7,17 @@
 add_hook('menu_lateral_items', function() {
     if (function_exists('is_admin_logged_in') && is_admin_logged_in()) {
         echo '<li>
+                <a href="/index.php/admin/products" class="item">
+                    <div class="icon-box bg-primary">
+                        <ion-icon name="cube-outline"></ion-icon>
+                    </div>
+                    <div class="in">
+                        Products
+                    </div>
+                </a>
+            </li>';
+            
+        echo '<li>
                 <a href="/index.php/admin/categories" class="item">
                     <div class="icon-box bg-primary">
                         <ion-icon name="pricetags-outline"></ion-icon>
@@ -34,6 +45,7 @@ add_hook('page_assets', function() {
 add_hook('breadcrumbs', function() {
     $rota = get_route();
     
+    // Breadcrumbs para categorias
     if ($rota['route'] === '/admin/categories') {
         echo '<li class="breadcrumb-item active" aria-current="page">Categories</li>';
     } 
@@ -43,6 +55,19 @@ add_hook('breadcrumbs', function() {
     }
     else if ($rota['route'] === '/admin/categories/edit') {
         echo '<li class="breadcrumb-item"><a href="/index.php/admin/categories">Categories</a></li>';
+        echo '<li class="breadcrumb-item active" aria-current="page">Edit</li>';
+    }
+    
+    // Breadcrumbs para produtos
+    else if ($rota['route'] === '/admin/products') {
+        echo '<li class="breadcrumb-item active" aria-current="page">Products</li>';
+    }
+    else if ($rota['route'] === '/admin/products/add') {
+        echo '<li class="breadcrumb-item"><a href="/index.php/admin/products">Products</a></li>';
+        echo '<li class="breadcrumb-item active" aria-current="page">Add New</li>';
+    }
+    else if ($rota['route'] === '/admin/products/edit') {
+        echo '<li class="breadcrumb-item"><a href="/index.php/admin/products">Products</a></li>';
         echo '<li class="breadcrumb-item active" aria-current="page">Edit</li>';
     }
 });

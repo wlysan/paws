@@ -35,5 +35,36 @@
         'view' => 'plugins/products/views/category_view.php',
         'controller' => 'plugins/products/controllers/category_controller.php',
         'structure' => 'app/struct/mobile.php'
+    ],
+
+    '/admin/products' => [
+        'view' => 'plugins/products/views/sys_product_view.php',
+        'controller' => 'plugins/products/controllers/sys_product_controller.php',
+        'structure' => 'plugins/admin/struct/sys_admin_struct.php'
+    ],
+    '/admin/products/add' => [
+        'view' => 'plugins/products/views/sys_product_add_view.php',
+        'controller' => 'plugins/products/controllers/sys_product_add_controller.php',
+        'structure' => 'plugins/admin/struct/sys_admin_struct.php'
+    ],
+    '/admin/products/edit' => [
+        'view' => 'plugins/products/views/sys_product_edit_view.php',
+        'controller' => 'plugins/products/controllers/sys_product_edit_controller.php',
+        'structure' => 'plugins/admin/struct/sys_admin_struct.php'
+    ],
+    '/admin/products/delete' => [
+        'view' => null,
+        'controller' => 'plugins/products/controllers/sys_product_delete_controller.php',
+        'structure' => null
+    ],
+    '/products' => [
+        'view' => 'plugins/products/views/products_view.php',
+        'controller' => 'plugins/products/controllers/products_controller.php',
+        'structure' => 'app/struct/mobile.php'
+    ],
+    '/product' => [
+        'view' => 'plugins/products/views/product_view.php',
+        'controller' => 'plugins/products/controllers/product_controller.php',
+        'structure' => 'app/struct/mobile.php'
     ]
 ];
